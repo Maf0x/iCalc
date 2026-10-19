@@ -2,7 +2,7 @@
 
 Una calculadora en blanco, negro y grises que se siente como una app nativa de iPhone. Un solo archivo, sin instalar nada y sin conexión.
 
-**[Probarla](https://TU-USUARIO.github.io/TU-REPOSITORIO/)**
+**[Probarla](https://maf0x.github.io/iCalc/)**
 
 ## Por qué probarla
 
