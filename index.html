@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#080808">
+<meta name="color-scheme" content="dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Calculadora">
+<meta name="format-detection" content="telephone=no">
+<title>Calculadora</title>
+<style>
+:root {
+  --black: #080808;
+  --surface: #111111;
+  --line: #1f1f1f;
+  --graphite: #252525;
+  --graphite-press: #3a3a3a;
+  --mid: #9a9a9a;
+  --mid-press: #b8b8b8;
+  --silver: #d8d8d8;
+  --silver-press: #f0f0f0;
+  --white: #ffffff;
+  --text-dim: #7d7d7d;
+  --gap: 12px;
+  --pad: 20px;
+  --screen: clamp(110px, 20dvh, 180px);
+  --btn: min(
+    calc((min(100vw, 440px) - 24px - 2 * var(--pad) - 3 * var(--gap)) / 4),
+    calc((100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - var(--screen) - 160px) / 5)
+  );
+  --font: -apple-system, "SF Pro Display", "Helvetica Neue", system-ui, "Segoe UI", Roboto, Arial, sans-serif;
+  --ease: cubic-bezier(.2, .8, .2, 1);
+}
+*, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; height: 100%; background: var(--black); }
+body {
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding: max(env(safe-area-inset-top, 0px), 12px) 12px max(env(safe-area-inset-bottom, 0px), 12px);
+  font-family: var(--font);
+  color: var(--white);
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+.calc {
+  width: calc(var(--btn) * 4 + var(--gap) * 3 + var(--pad) * 2);
+  max-width: 100%;
+  padding: 0 var(--pad) var(--pad);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 36px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .55), inset 0 1px 0 rgba(255, 255, 255, .03);
+}
+.screen {
+  height: var(--screen);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: stretch;
+  padding: 0 6px 14px;
+  overflow: hidden;
+}
+.expr {
+  min-height: 1.4em;
+  font-size: 17px;
+  font-weight: 400;
+  letter-spacing: .01em;
+  text-align: right;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+.result {
+  display: block;
+  margin-top: 4px;
+  font-size: 80px;
+  line-height: 1.05;
+  font-weight: 200;
+  letter-spacing: -.035em;
+  text-align: right;
+  white-space: nowrap;
+  color: var(--white);
+  font-variant-numeric: tabular-nums;
+}
+.result.tick { animation: tick 240ms ease-out; }
+@keyframes tick { from { opacity: .3; } to { opacity: 1; } }
+.keys {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, var(--btn));
+  grid-auto-rows: var(--btn);
+  gap: var(--gap);
+  padding-top: var(--pad);
+}
+.keys::before {
+  content: "";
+  position: absolute;
+  top: 0; left: -6px; right: -6px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .08) 20%, rgba(255, 255, 255, .08) 80%, transparent);
+}
+.btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--btn);
+  height: var(--btn);
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--bg);
+  color: var(--fg);
+  font: 400 calc(var(--btn) * .4) / 1 var(--font);
+  letter-spacing: -.01em;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-appearance: none;
+  appearance: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .07),
+    inset 0 -3px 6px rgba(0, 0, 0, .28),
+    0 2px 5px rgba(0, 0, 0, .45);
+  transition: transform 140ms var(--ease), background-color 160ms ease, box-shadow 200ms ease, color 160ms ease;
+}
+.btn svg { width: calc(var(--btn) * .4); height: calc(var(--btn) * .4); display: block; }
+.btn:active, .btn.pressed { transform: scale(.93); background: var(--press); }
+.btn:focus-visible { outline: 2px solid var(--white); outline-offset: 3px; }
+.num { --bg: var(--graphite); --press: var(--graphite-press); --fg: var(--white); font-weight: 300; font-size: calc(var(--btn) * .44); }
+.fn  { --bg: var(--mid); --press: var(--mid-press); --fg: var(--black); font-weight: 500; font-size: calc(var(--btn) * .32); }
+.back { --fg: var(--silver); }
+.op  { --bg: var(--silver); --press: var(--silver-press); --fg: var(--black); font-weight: 400; font-size: calc(var(--btn) * .5); }
+.op[aria-pressed="true"] {
+  --bg: var(--surface); --press: #1a1a1a; --fg: var(--silver);
+  box-shadow: inset 0 0 0 2px var(--silver), 0 2px 5px rgba(0, 0, 0, .45);
+}
+.op[aria-pressed="true"]::after {
+  content: "";
+  position: absolute;
+  bottom: 15%; left: 50%;
+  width: 4px; height: 4px;
+  margin-left: -2px;
+  border-radius: 50%;
+  background: var(--silver);
+}
+.eq {
+  --bg: var(--white); --press: #e2e2e2; --fg: var(--black);
+  font-weight: 400; font-size: calc(var(--btn) * .5);
+  box-shadow:
+    inset 0 -3px 6px rgba(0, 0, 0, .12),
+    0 0 26px rgba(255, 255, 255, .16),
+    0 2px 5px rgba(0, 0, 0, .45);
+}
+.eq.burst { animation: burst 520ms var(--ease); }
+@keyframes burst {
+  0%   { box-shadow: 0 0 0 0 rgba(255, 255, 255, .4), 0 0 26px rgba(255, 255, 255, .16); }
+  100% { box-shadow: 0 0 0 20px rgba(255, 255, 255, 0), 0 0 26px rgba(255, 255, 255, .16); }
+}
+@media (hover: hover) {
+  .num:hover { background: #2d2d2d; }
+  .fn:hover  { background: #a8a8a8; }
+  .op:hover:not([aria-pressed="true"]) { background: #e6e6e6; }
+  .btn:active, .btn.pressed { background: var(--press); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn, .result.tick, .eq.burst { transition: none; animation: none; }
+}
+</style>
+</head>
+<body>
+<main class="calc" aria-label="Calculadora">
+  <section class="screen" aria-label="Pantalla">
+    <div class="expr" id="expr" aria-hidden="true">&nbsp;</div>
+    <output class="result" id="result" aria-live="polite" aria-atomic="true">0</output>
+  </section>
+  <div class="keys" id="keys" role="group" aria-label="Teclado"></div>
+</main>
+
+<script>
+(() => {
+  'use strict';
+
+  const SYM = { '+': '+', '-': '−', '*': '×', '/': '÷' };
+  const BACK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-6-7 6-7z"/><path d="M12.5 10l4 4m0-4l-4 4"/></svg>';
+  const digit = d => ({ a: 'digit', v: d, t: d, c: 'num', l: d, keys: [d] });
+  const op = (v, t, l, keys) => ({ a: 'op', v, t, c: 'op', l, keys });
+
+  const LAYOUT = [
+    { a: 'clear', t: 'AC', c: 'fn', l: 'Borrar todo', keys: ['Escape', 'Delete'] },
+    { a: 'sign', t: '+/\u2212', c: 'fn', l: 'Cambiar signo', keys: [] },
+    { a: 'percent', t: '%', c: 'fn', l: 'Porcentaje', keys: ['%'] },
+    op('/', '\u00F7', 'Dividir', ['/']),
+    digit('7'), digit('8'), digit('9'), op('*', '\u00D7', 'Multiplicar', ['*', 'x', 'X']),
+    digit('4'), digit('5'), digit('6'), op('-', '\u2212', 'Restar', ['-']),
+    digit('1'), digit('2'), digit('3'), op('+', '+', 'Sumar', ['+']),
+    digit('0'),
+    { a: 'dot', t: '.', c: 'num', l: 'Punto decimal', keys: ['.', ','] },
+    { a: 'back', t: BACK_ICON, html: true, c: 'num back', l: 'Borrar último dígito', keys: ['Backspace'] },
+    { a: 'equals', t: '=', c: 'eq', l: 'Igual', keys: ['Enter', '='] }
+  ];
+
+  const S = { cur: '0', prev: null, op: null, fresh: false, lastOp: null, lastB: null, expr: '', err: '' };
+  const exprEl = document.getElementById('expr');
+  const resEl = document.getElementById('result');
+  const keysEl = document.getElementById('keys');
+  const opBtns = {};
+  const keyMap = {};
+  const btnOf = new Map();
+
+  /* ---------- Números ---------- */
+  const clean = n => Number(n.toPrecision(12));
+
+  function str(n) {
+    n = clean(n);
+    if (Object.is(n, -0)) n = 0;
+    if (Math.abs(n) >= 1e15 || (n !== 0 && Math.abs(n) < 1e-9)) {
+      return n.toExponential(6).replace(/\.?0+e/, 'e').replace('e+', 'e');
+    }
+    return String(n);
+  }
+
+  function fmt(s) {
+    if (/e/i.test(s)) {
+      const [m, e] = s.toLowerCase().split('e');
+      return m.replace('-', '\u2212') + 'e' + Number(e);
+    }
+    const neg = s.startsWith('-');
+    let [i, f] = s.replace('-', '').split('.');
+    i = i.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return (neg ? '\u2212' : '') + i + (f !== undefined ? '.' + f : '');
+  }
+  const show = n => fmt(str(n));
+
+  function calc(a, b, o) {
+    let r;
+    switch (o) {
+      case '+': r = a + b; break;
+      case '-': r = a - b; break;
+      case '*': r = a * b; break;
+      case '/':
+        if (b === 0) throw new Error('No se puede dividir entre cero');
+        r = a / b; break;
+    }
+    if (!Number.isFinite(r)) throw new Error('Número demasiado grande');
+    return r;
+  }
+
+  /* ---------- Acciones ---------- */
+  function reset() {
+    Object.assign(S, { cur: '0', prev: null, op: null, fresh: false, lastOp: null, lastB: null, expr: '', err: '' });
+  }
+
+  const actions = {
+    digit(d) {
+      if (S.fresh) {
+        if (S.op === null) S.expr = '';
+        S.cur = '0';
+        S.fresh = false;
+      }
+      if (S.cur === '0') S.cur = d;
+      else if (S.cur === '-0') S.cur = '-' + d;
+      else if (S.cur.replace(/[-.]/g, '').length < 12) S.cur += d;
+    },
+    dot() {
+      if (S.fresh) {
+        if (S.op === null) S.expr = '';
+        S.cur = '0';
+        S.fresh = false;
+      }
+      if (!S.cur.includes('.')) S.cur += '.';
+    },
+    back() {
+      if (S.fresh) return;
+      S.cur = S.cur.slice(0, -1);
+      if (S.cur === '' || S.cur === '-') S.cur = '0';
+    },
+    clear() { reset(); },
+    sign() {
+      if (S.fresh && S.op !== null) { S.cur = '-0'; S.fresh = false; return; }
+      if (S.cur === '0') return;
+      S.cur = S.cur.startsWith('-') ? S.cur.slice(1) : '-' + S.cur;
+    },
+    percent() {
+      const v = Number(S.cur);
+      const r = (S.op === '+' || S.op === '-') && S.prev !== null ? S.prev * v / 100 : v / 100;
+      S.cur = str(r);
+      S.fresh = true;
+      return true;
+    },
+    op(o) {
+      if (S.op !== null && !S.fresh) {
+        const r = calc(S.prev, Number(S.cur), S.op);
+        S.cur = str(r);
+        S.prev = Number(S.cur);
+      } else if (S.op === null) {
+        S.prev = Number(S.cur);
+      }
+      S.op = o;
+      S.lastOp = null;
+      S.fresh = true;
+      S.expr = show(S.prev) + ' ' + SYM[o];
+    },
+    equals() {
+      let a, b, o;
+      if (S.op !== null) {
+        a = S.prev; b = Number(S.cur); o = S.op;
+        S.lastOp = o; S.lastB = b;
+      } else if (S.lastOp !== null) {
+        a = Number(S.cur); b = S.lastB; o = S.lastOp;
+      } else {
+        return;
+      }
+      const r = calc(a, b, o);
+      S.expr = show(a) + ' ' + SYM[o] + ' ' + show(b) + ' =';
+      S.cur = str(r);
+      S.prev = null;
+      S.op = null;
+      S.fresh = true;
+      return true;
+    }
+  };
+
+  function act(item) {
+    if (S.err && item.a !== 'clear') reset();
+    let animate = false;
+    try {
+      animate = !!actions[item.a](item.v);
+    } catch (e) {
+      reset();
+      S.err = e.message;
+    }
+    render(animate || item.a === 'equals');
+    if (item.a === 'equals') burst();
+    haptic();
+  }
+
+  /* ---------- Render ---------- */
+  function fit() {
+    let size = 80;
+    resEl.style.fontSize = size + 'px';
+    const max = resEl.parentElement.clientWidth - 12;
+    while (resEl.scrollWidth > max && size > 24) {
+      size -= 2;
+      resEl.style.fontSize = size + 'px';
+    }
+  }
+
+  function render(animate) {
+    resEl.textContent = S.err ? 'Error' : fmt(S.cur);
+    exprEl.textContent = S.err || S.expr || '\u00A0';
+    for (const v in opBtns) opBtns[v].setAttribute('aria-pressed', String(S.op === v && S.fresh));
+    fit();
+    if (animate) {
+      resEl.classList.remove('tick');
+      void resEl.offsetWidth;
+      resEl.classList.add('tick');
+    }
+  }
+
+  function burst() {
+    const b = keysEl.querySelector('.eq');
+    b.classList.remove('burst');
+    void b.offsetWidth;
+    b.classList.add('burst');
+  }
+
+  function haptic() {
+    try { if (navigator.vibrate) navigator.vibrate(6); } catch (_) {}
+  }
+
+  /* ---------- Teclado en pantalla ---------- */
+  LAYOUT.forEach(item => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'btn ' + item.c;
+    b.setAttribute('aria-label', item.l);
+    if (item.html) b.innerHTML = item.t; else b.textContent = item.t;
+    if (item.a === 'op') {
+      b.setAttribute('aria-pressed', 'false');
+      opBtns[item.v] = b;
+    }
+    b.addEventListener('click', () => act(item));
+    keysEl.appendChild(b);
+    btnOf.set(item, b);
+    item.keys.forEach(k => { keyMap[k] = item; });
+  });
+
+  /* ---------- Teclado físico ---------- */
+  window.addEventListener('keydown', e => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const item = keyMap[e.key];
+    if (!item) return;
+    e.preventDefault();
+    const b = btnOf.get(item);
+    b.classList.add('pressed');
+    setTimeout(() => b.classList.remove('pressed'), 120);
+    act(item);
+  });
+
+  /* ---------- iOS: sin zoom, respuesta táctil inmediata ---------- */
+  document.addEventListener('touchstart', () => {}, { passive: true });
+  ['gesturestart', 'gesturechange', 'gestureend'].forEach(t =>
+    document.addEventListener(t, e => e.preventDefault())
+  );
+  document.addEventListener('dblclick', e => e.preventDefault());
+  window.addEventListener('resize', fit);
+
+  render(false);
+})();
+</script>
+</body>
+</html>
